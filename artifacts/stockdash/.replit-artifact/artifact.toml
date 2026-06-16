@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Stock Broker Dashboard"
+version = "1.0.0"
+id = "artifacts/stockdash"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18725
+
+[services.development]
+run = "pnpm --filter @workspace/stockdash run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/stockdash", "run", "build" ]
+publicDir = "artifacts/stockdash/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18725"
+BASE_PATH = "/"

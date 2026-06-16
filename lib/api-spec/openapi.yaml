@@ -1,0 +1,374 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: Stock Broker Dashboard API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Authentication
+  - name: stocks
+    description: Stock operations
+  - name: subscriptions
+    description: Subscription management
+  - name: portfolio
+    description: Portfolio and trading
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login with email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Bad request
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout current user
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+
+  /stocks:
+    get:
+      operationId: listStocks
+      tags: [stocks]
+      summary: List all supported stocks
+      responses:
+        "200":
+          description: List of supported stocks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Stock"
+
+  /stocks/prices:
+    get:
+      operationId: getStockPrices
+      tags: [stocks]
+      summary: Get current prices of all supported stocks
+      responses:
+        "200":
+          description: Current stock prices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StockPrice"
+
+  /subscriptions:
+    get:
+      operationId: listSubscriptions
+      tags: [subscriptions]
+      summary: Get current user subscriptions
+      responses:
+        "200":
+          description: User subscribed stocks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subscription"
+        "401":
+          description: Not authenticated
+
+    post:
+      operationId: createSubscription
+      tags: [subscriptions]
+      summary: Subscribe to a stock
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscriptionInput"
+      responses:
+        "201":
+          description: Subscribed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+        "400":
+          description: Bad request
+        "401":
+          description: Not authenticated
+
+  /subscriptions/{ticker}:
+    delete:
+      operationId: deleteSubscription
+      tags: [subscriptions]
+      summary: Unsubscribe from a stock
+      parameters:
+        - name: ticker
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Unsubscribed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          description: Not authenticated
+        "404":
+          description: Subscription not found
+
+  /portfolio:
+    get:
+      operationId: getPortfolio
+      tags: [portfolio]
+      summary: Get current user portfolio with live P&L
+      responses:
+        "200":
+          description: Portfolio holdings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Portfolio"
+        "401":
+          description: Not authenticated
+
+  /trades:
+    get:
+      operationId: listTrades
+      tags: [portfolio]
+      summary: Get trade history for current user
+      responses:
+        "200":
+          description: Trade history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TradeRecord"
+        "401":
+          description: Not authenticated
+
+    post:
+      operationId: executeTrade
+      tags: [portfolio]
+      summary: Execute a buy or sell trade
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TradeInput"
+      responses:
+        "201":
+          description: Trade executed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TradeRecord"
+        "400":
+          description: Bad request (e.g. not enough shares to sell)
+        "401":
+          description: Not authenticated
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+
+    LoginInput:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required: [email]
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+      required: [id, email]
+
+    Stock:
+      type: object
+      properties:
+        ticker:
+          type: string
+        name:
+          type: string
+      required: [ticker, name]
+
+    StockPrice:
+      type: object
+      properties:
+        ticker:
+          type: string
+        price:
+          type: number
+        change:
+          type: number
+        changePercent:
+          type: number
+        trend:
+          type: string
+          enum: [up, down, neutral]
+      required: [ticker, price, change, changePercent, trend]
+
+    Subscription:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        ticker:
+          type: string
+        createdAt:
+          type: string
+      required: [id, userId, ticker, createdAt]
+
+    SubscriptionInput:
+      type: object
+      properties:
+        ticker:
+          type: string
+      required: [ticker]
+
+    PortfolioHolding:
+      type: object
+      properties:
+        ticker:
+          type: string
+        shares:
+          type: number
+        avgCost:
+          type: number
+        currentPrice:
+          type: number
+        totalCost:
+          type: number
+        totalValue:
+          type: number
+        pnl:
+          type: number
+        pnlPercent:
+          type: number
+      required: [ticker, shares, avgCost, currentPrice, totalCost, totalValue, pnl, pnlPercent]
+
+    Portfolio:
+      type: object
+      properties:
+        holdings:
+          type: array
+          items:
+            $ref: "#/components/schemas/PortfolioHolding"
+        totalValue:
+          type: number
+        totalCost:
+          type: number
+        totalPnl:
+          type: number
+        totalPnlPercent:
+          type: number
+      required: [holdings, totalValue, totalCost, totalPnl, totalPnlPercent]
+
+    TradeInput:
+      type: object
+      properties:
+        ticker:
+          type: string
+        type:
+          type: string
+          enum: [buy, sell]
+        shares:
+          type: number
+      required: [ticker, type, shares]
+
+    TradeRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        ticker:
+          type: string
+        type:
+          type: string
+        shares:
+          type: number
+        price:
+          type: number
+        total:
+          type: number
+        executedAt:
+          type: string
+      required: [id, ticker, type, shares, price, total, executedAt]
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
